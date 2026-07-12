@@ -1,10 +1,17 @@
 {
-  "framework": "vite",
-  "buildCommand": "cd frontend && npm install && npm run build",
-  "outputDirectory": "frontend/dist",
-  "installCommand": "npm install && cd frontend && npm install",
-  "rewrites": [
-    { "source": "/api/chat", "destination": "/api/chat.js" },
-    { "source": "/(.*)", "destination": "/index.html" }
+  "builds": [
+    {
+      "src": "api/chat.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "frontend/dist/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    { "src": "/api/chat", "dest": "/api/chat.js" },
+    { "src": "/assets/(.*)", "dest": "/frontend/dist/assets/$1" },
+    { "src": "/(.*)", "dest": "/frontend/dist/index.html" }
   ]
 }

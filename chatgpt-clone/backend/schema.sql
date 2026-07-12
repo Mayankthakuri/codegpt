@@ -39,7 +39,7 @@ CREATE POLICY "Users can update own data" ON users
 -- Create policy for inserting new users (registration)
 CREATE POLICY "Allow insert for registration" ON users
   FOR INSERT
-  WITH CHECK (true);
+  WITH CHECK (auth.uid() = id);
 
 -- Create function to update updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()

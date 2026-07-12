@@ -1,4 +1,4 @@
-import courses from '../data/courses'
+import { courses } from '../data/courses'
 
 export default function Sidebar({ 
   conversations, 

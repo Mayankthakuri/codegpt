@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import courses from '../data/courses'
+import { courses } from '../data/courses'
 
 export default function Dashboard({ onSelectLesson }) {
   const [progress, setProgress] = useState(() => {

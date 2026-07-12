@@ -127,7 +127,7 @@ router.get('/google/callback',
   passport.authenticate('google', { failureRedirect: '/login' }),
   (req, res) => {
     const token = createToken(req.user.id);
-    res.redirect(`http://localhost:3000/auth/callback?token=${token}`);
+    res.redirect(`http://localhost:3000?token=${token}`);
   }
 );
 

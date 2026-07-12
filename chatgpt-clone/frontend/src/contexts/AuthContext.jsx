@@ -8,11 +8,20 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      fetchUser(token)
+    // Check for token in URL (Google OAuth callback)
+    const urlParams = new URLSearchParams(window.location.search)
+    const tokenFromUrl = urlParams.get('token')
+    if (tokenFromUrl) {
+      localStorage.setItem('token', tokenFromUrl)
+      window.history.replaceState({}, document.title, window.location.pathname)
+      fetchUser(tokenFromUrl)
     } else {
-      setLoading(false)
+      const token = localStorage.getItem('token')
+      if (token) {
+        fetchUser(token)
+      } else {
+        setLoading(false)
+      }
     }
   }, [])
 

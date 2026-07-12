@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { courses } from '../data/courses'
+import API_URL from '../config'
 
 export default function Profile() {
   const { user, logout } = useAuth()
@@ -16,7 +17,7 @@ export default function Profile() {
   const loadProgress = async () => {
     const token = localStorage.getItem('token')
     try {
-      const response = await fetch('/auth/progress', {
+      const response = await fetch(`${API_URL}/auth/progress`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.ok) {

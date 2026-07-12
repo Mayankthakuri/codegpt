@@ -7,6 +7,7 @@ import { syntaxHighlighting, defaultHighlightStyle, bracketMatching, foldGutter,
 import { closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete'
 import { highlightSelectionMatches, searchKeymap } from '@codemirror/search'
 import { lintKeymap } from '@codemirror/lint'
+import API_URL from '../config'
 
 const DEFAULT_CELLS = [
   {
@@ -239,7 +240,7 @@ sys.stdout = StringIO()
 Task: ${aiPrompt}`
 
     try {
-      const response = await fetch('/api/chat', {
+      const response = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

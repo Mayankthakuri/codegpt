@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const https = require('https');
+const session = require('express-session');
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const supabase = require('./supabase');
@@ -89,6 +90,12 @@ passport.use(new GoogleStrategy({
 
 app.use(cors());
 app.use(express.json());
+app.use(session({
+  secret: process.env.JWT_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false }
+}));
 app.use(passport.initialize());
 app.use(passport.session());
 

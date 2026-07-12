@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import API_URL from '../config'
 
 const AuthContext = createContext(null)
 
@@ -17,7 +18,7 @@ export function AuthProvider({ children }) {
 
   const fetchUser = async (token) => {
     try {
-      const response = await fetch('/auth/me', {
+      const response = await fetch(`${API_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (response.ok) {
@@ -34,7 +35,7 @@ export function AuthProvider({ children }) {
   }
 
   const login = async (email, password) => {
-    const response = await fetch('/auth/login', {
+    const response = await fetch(`${API_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
@@ -49,7 +50,7 @@ export function AuthProvider({ children }) {
   }
 
   const register = async (email, password, name) => {
-    const response = await fetch('/auth/register', {
+    const response = await fetch(`${API_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, name })
@@ -64,7 +65,7 @@ export function AuthProvider({ children }) {
   }
 
   const loginWithGoogle = () => {
-    window.location.href = '/auth/google'
+    window.location.href = `${API_URL}/auth/google`
   }
 
   const logout = () => {
@@ -77,7 +78,7 @@ export function AuthProvider({ children }) {
     if (!token) return
 
     try {
-      const response = await fetch('/auth/progress', {
+      const response = await fetch(`${API_URL}/auth/progress`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -105,7 +106,7 @@ export function AuthProvider({ children }) {
     if (!token) return null
 
     try {
-      const response = await fetch('/auth/progress', {
+      const response = await fetch(`${API_URL}/auth/progress`, {
         headers: { Authorization: `Bearer ${token}` }
       })
 

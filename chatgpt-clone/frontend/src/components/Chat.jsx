@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import Message from './Message'
+import API_URL from '../config'
 
 export default function Chat({ conversation, onUpdateConversation }) {
   const [input, setInput] = useState('')
@@ -54,7 +55,7 @@ export default function Chat({ conversation, onUpdateConversation }) {
     setIsLoading(true)
 
     try {
-      const response = await fetch('/api/chat', {
+      const response = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: newMessages })

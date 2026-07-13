@@ -1,4 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
+const crypto = require('crypto');
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -17,41 +18,48 @@ module.exports = async function handler(req, res) {
 
     if (payload.exp < Math.floor(Date.now() / 1000)) {
       return res.status(401).json({ error: 'Token expired' });
+
     }
 
     const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_KEY);
 
+    // Find existing user by google_id
     let { data: user } = await supabase.from('users').select('*').eq('google_id', googleId).single();
 
     if (!user) {
+      // Try by email
       const { data: existing } = await supabase.from('users').select('*').eq('email', email).single();
       if (existing) {
-        const { data } = await supabase.from('users').update({ google_id: googleId, avatar: picture || existing.avatar }).eq('id', existing.id).select().single();
+        const { data, error } = await supabase.from('users').update({ google_id: googleId, avatar: picture || existing.avatar }).eq('id', existing.id).select().single();
+        if (error) throw error;
         user = data;
       } else {
-        const { data } = await supabase.from('users').insert({
-          id: googleId, google_id: googleId, email, name, avatar: picture || '', provider: 'google',
+        // Create with UUID
+        const userId = crypto.randomUUID();
+        const { data, error } = await supabase.from('users').insert({
+          id: userId, google_id: googleId, email, name, avatar: picture || '', provider: 'google',
           stats: {}, achievements: [], progress: []
         }).select().single();
+        if (error) throw error;
         user = data;
       }
     }
 
-    // Ensure auth user exists (ignore if already exists)
-    await supabase.auth.admin.createUser({
+    // Create auth user
+    const { error: authErr } = await supabase.auth.admin.createUser({
       id: user.id, email, email_confirm: true,
       user_metadata: { full_name: name, avatar_url: picture }
-    }).catch(() => {});
+    });
 
-    // Generate magic link to extract token
-    const { data: linkData } = await supabase.auth.admin.generateLink({
+    // Generate magic link for session
+    const { data: linkData, error: linkErr } = await supabase.auth.admin.generateLink({
       type: 'magiclink', email
     });
 
-    if (linkData?.properties?.action_link) {
-      const url = new URL(linkData.properties.action_link);
-      const token = url.searchParams.get('token');
+    if (linkErr) throw linkErr;
 
+    if (linkData?.properties?.action_link) {
+      const token = new URL(linkData.properties.action_link).searchParams.get('token');
       if (token) {
         return res.json({
           token,
@@ -65,7 +73,7 @@ module.exports = async function handler(req, res) {
       }
     }
 
-    return res.status(500).json({ error: 'Failed to generate auth token' });
+    return res.status(500).json({ error: 'Failed to generate session' });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }

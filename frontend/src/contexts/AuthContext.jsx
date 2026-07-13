@@ -192,6 +192,22 @@ export function AuthProvider({ children }) {
     setUser(null)
   }
 
+  const sendAchievementEmail = async (achievement) => {
+    try {
+      await fetch('/api/achievements/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: user.email,
+          name: user.name,
+          achievement
+        })
+      })
+    } catch (err) {
+      console.error('Failed to send achievement email:', err)
+    }
+  }
+
   const updateProgress = async (progressData) => {
     if (!user) return
 
@@ -212,12 +228,17 @@ export function AuthProvider({ children }) {
     stats.quizzesPassed = progress.filter(p => p.quizPassed).length
     stats.lastActive = new Date().toISOString()
 
-    const achievements = checkAchievements(progress, stats, user.achievements || [])
+    const oldAchievements = user.achievements || []
+    const achievements = checkAchievements(progress, stats, oldAchievements)
+
+    const newAchievements = achievements.filter(a => !oldAchievements.find(e => e.id === a.id))
+    if (newAchievements.length > 0) {
+      newAchievements.forEach(a => sendAchievementEmail(a))
+    }
 
     const { error } = await supabase.from('users').update({ progress, stats, achievements }).eq('id', user.id)
     if (error) {
       console.error('Failed to update progress:', error)
-      // Try upsert as fallback
       await supabase.from('users').upsert({
         id: user.id, email: user.email, name: user.name, provider: user.provider,
         progress, stats, achievements

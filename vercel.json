@@ -4,6 +4,9 @@
   "installCommand": "npm install && cd frontend && npm install",
   "rewrites": [
     { "source": "/api/chat", "destination": "/api/chat.js" },
+    { "source": "/api/auth/action", "destination": "/api/auth/action.js" },
+    { "source": "/api/auth/google", "destination": "/api/auth/google.js" },
+    { "source": "/api/achievements/send-email", "destination": "/api/achievements/send-email.js" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

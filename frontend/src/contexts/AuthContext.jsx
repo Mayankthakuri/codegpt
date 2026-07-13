@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import supabase from '../lib/supabase'
-import API_URL from '../config'
 
 const AuthContext = createContext(null)
 
@@ -51,7 +50,12 @@ export function AuthProvider({ children }) {
 
   const loadUserProfile = async (authUser) => {
     try {
-      const { data } = await supabase.from('users').select('*').eq('id', authUser.id).single()
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authUser.id)
+        .maybeSingle()
+
       if (data) {
         setUser({
           id: data.id, email: data.email, name: data.name, avatar: data.avatar,
@@ -59,15 +63,33 @@ export function AuthProvider({ children }) {
           progress: data.progress || [], created_at: data.created_at
         })
       } else {
+        // Create user profile if it doesn't exist
+        const name = authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'User'
+        const avatar = authUser.user_metadata?.avatar_url || ''
+        const provider = authUser.app_metadata?.provider || 'email'
+
+        const { error: insertErr } = await supabase.from('users').upsert({
+          id: authUser.id,
+          email: authUser.email,
+          name,
+          avatar,
+          provider,
+          stats: {},
+          achievements: [],
+          progress: []
+        })
+
+        if (insertErr) {
+          console.error('Failed to create user profile:', insertErr)
+        }
+
         setUser({
-          id: authUser.id, email: authUser.email,
-          name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0],
-          avatar: authUser.user_metadata?.avatar_url || '',
-          provider: authUser.app_metadata?.provider || 'email',
+          id: authUser.id, email: authUser.email, name, avatar, provider,
           stats: {}, achievements: [], progress: []
         })
       }
     } catch (error) {
+      console.error('Error loading profile:', error)
       setUser({
         id: authUser.id, email: authUser.email,
         name: authUser.user_metadata?.full_name || authUser.email?.split('@')[0],
@@ -94,10 +116,12 @@ export function AuthProvider({ children }) {
     })
     if (error) throw error
     if (data.user) {
-      await supabase.from('users').upsert({
+      // Upsert profile (will be created if doesn't exist)
+      const { error: insertErr } = await supabase.from('users').upsert({
         id: data.user.id, email: data.user.email, name, provider: 'local',
         stats: {}, achievements: [], progress: []
       })
+      if (insertErr) console.error('Profile upsert error:', insertErr)
       await loadUserProfile(data.user)
     }
     return data.user
@@ -116,7 +140,7 @@ export function AuthProvider({ children }) {
         client_id: clientId,
         callback: async (response) => {
           try {
-            const res = await fetch(`${API_URL}/api/auth/google`, {
+            const res = await fetch('/api/auth/google', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ credential: response.credential })
@@ -124,7 +148,6 @@ export function AuthProvider({ children }) {
             const data = await res.json()
             if (!res.ok) throw new Error(data.error)
 
-            // Use the magic link token to create a Supabase session
             const { data: sessionData, error: sessionErr } = await supabase.auth.verifyOtp({
               email: data.email,
               token: data.token,
@@ -132,7 +155,6 @@ export function AuthProvider({ children }) {
             })
 
             if (sessionErr) {
-              // Fallback: set user directly without Supabase session
               setUser(data.user)
               setLoading(false)
               resolve(data.user)
@@ -179,7 +201,15 @@ export function AuthProvider({ children }) {
 
     const achievements = checkAchievements(progress, stats, user.achievements || [])
 
-    await supabase.from('users').update({ progress, stats, achievements }).eq('id', user.id)
+    const { error } = await supabase.from('users').update({ progress, stats, achievements }).eq('id', user.id)
+    if (error) {
+      console.error('Failed to update progress:', error)
+      // Try upsert as fallback
+      await supabase.from('users').upsert({
+        id: user.id, email: user.email, name: user.name, provider: user.provider,
+        progress, stats, achievements
+      })
+    }
     setUser(prev => ({ ...prev, progress, stats, achievements }))
   }
 

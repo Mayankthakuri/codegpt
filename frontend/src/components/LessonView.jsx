@@ -1,7 +1,5 @@
 import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 export default function LessonView({ lesson, module, onBack, onComplete, onNext, hasNext }) {
   const [progress, setProgress] = useState(() => {
@@ -38,13 +36,9 @@ export default function LessonView({ lesson, module, onBack, onComplete, onNext,
               const match = /language-(\w+)/.exec(className || '')
               if (!inline && match) {
                 return (
-                  <SyntaxHighlighter
-                    style={vscDarkPlus}
-                    language={match[1]}
-                    PreTag="div"
-                  >
-                    {String(children).replace(/\n$/, '')}
-                  </SyntaxHighlighter>
+                  <div className="code-block">
+                    <pre><code className={className} {...props}>{String(children).replace(/\n$/, '')}</code></pre>
+                  </div>
                 )
               }
               return <code className={className} {...props}>{children}</code>

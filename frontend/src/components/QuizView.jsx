@@ -1,7 +1,5 @@
 import { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 export default function QuizView({ quiz, module, onBack, onComplete }) {
   const [currentQuestion, setCurrentQuestion] = useState(0)
@@ -105,9 +103,9 @@ export default function QuizView({ quiz, module, onBack, onComplete }) {
         
         {question.code && (
           <div className="question-code">
-            <SyntaxHighlighter style={vscDarkPlus} language="python">
-              {question.code}
-            </SyntaxHighlighter>
+            <div className="code-block">
+              <pre><code>{question.code}</code></pre>
+            </div>
           </div>
         )}
 

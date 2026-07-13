@@ -61,18 +61,7 @@ function AppContent() {
   if (showProfile) {
     return (
       <div className={`app ${darkMode ? 'dark' : 'light'}`}>
-        <Header
-          darkMode={darkMode}
-          onToggleDark={() => setDarkMode(!darkMode)}
-          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
-          title="Profile"
-          mode={mode}
-          onModeChange={setMode}
-          showLearning={showLearning}
-          onToggleLearning={() => {}}
-          onShowProfile={() => setShowProfile(false)}
-        />
-        <Profile />
+        <Profile onBack={() => setShowProfile(false)} />
       </div>
     )
   }

@@ -9,7 +9,8 @@ export default function Header({ darkMode, onToggleDark, onToggleSidebar, title,
             <line x1="3" y1="18" x2="21" y2="18"></line>
           </svg>
         </button>
-        <span className="header-title">{title}</span>
+        <img src="/falcon.svg" alt="CodeGPT" className="header-logo" />
+        <span className="header-title">{title || 'CodeGPT'}</span>
       </div>
       <div className="header-center">
         <div className="mode-switcher">

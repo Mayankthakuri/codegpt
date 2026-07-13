@@ -35,8 +35,8 @@ export default function AuthPage() {
       <div className="auth-container">
         <div className="auth-header">
           <div className="auth-logo">
-            <span className="logo-icon">💬</span>
-            <span className="logo-text">AI Learning Platform</span>
+            <img src="/falcon.svg" alt="CodeGPT" className="auth-logo-img" />
+            <span className="logo-text">CodeGPT</span>
           </div>
           <h1>{isLogin ? 'Welcome Back' : 'Create Account'}</h1>
           <p>{isLogin ? 'Sign in to continue your learning journey' : 'Join us and start learning'}</p>

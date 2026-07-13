@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#a855f7"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#grad)"/>
+  <!-- Falcon head -->
+  <path d="M32 14 L42 24 L38 26 L44 32 L36 30 L32 36 L28 30 L20 32 L26 26 L22 24 Z" fill="white" fill-rule="evenodd"/>
+  <!-- Falcon beak -->
+  <path d="M32 28 L34 34 L32 38 L30 34 Z" fill="#c7d2fe"/>
+  <!-- Eye left -->
+  <circle cx="28" cy="22" r="2.2" fill="#312e81"/>
+  <!-- Eye right -->
+  <circle cx="36" cy="22" r="2.2" fill="#312e81"/>
+  <!-- Wing left -->
+  <path d="M14 36 L22 32 L20 42 L14 50 Z" fill="white" opacity="0.7"/>
+  <!-- Wing right -->
+  <path d="M50 36 L42 32 L44 42 L50 50 Z" fill="white" opacity="0.7"/>
+  <!-- Tail feathers -->
+  <path d="M28 42 L32 52 L36 42 Z" fill="white" opacity="0.5"/>
+</svg>

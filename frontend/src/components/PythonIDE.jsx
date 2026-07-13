@@ -49,10 +49,11 @@ function CellEditor({ cell, onChange }) {
           }
         }),
         EditorView.theme({
-          '&': { fontSize: '13px' },
-          '.cm-scroller': { fontFamily: "'Monaco', 'Menlo', monospace", overflow: 'auto' },
-          '.cm-content': { padding: '8px 0' },
-          '.cm-gutters': { backgroundColor: 'transparent', border: 'none' },
+          '&': { fontSize: '13px', height: '100%' },
+          '.cm-scroller': { fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace", overflow: 'auto' },
+          '.cm-content': { padding: '8px 0', minHeight: '40px' },
+          '.cm-gutters': { backgroundColor: 'transparent', border: 'none', minWidth: '0' },
+          '.cm-lineNumbers .cm-gutterElement': { padding: '0 8px 0 0', minWidth: '24px' },
         }),
       ],
     })
@@ -85,11 +86,11 @@ export default function PythonIDE() {
   const [pyodide, setPyodide] = useState(null)
   const [loading, setLoading] = useState(true)
   const [selectedCellId, setSelectedCellId] = useState(null)
+  const [hoveredCellId, setHoveredCellId] = useState(null)
   const [showAiPanel, setShowAiPanel] = useState(false)
   const [aiPrompt, setAiPrompt] = useState('')
   const [aiGenerating, setAiGenerating] = useState(false)
   const [aiResponse, setAiResponse] = useState('')
-  const [showToc, setShowToc] = useState(false)
   const [runtimeInfo, setRuntimeInfo] = useState({ python: 'Loading...', memory: '—' })
   const cellsRef = useRef(cells)
   const pyodideRef = useRef(null)
@@ -267,97 +268,131 @@ export default function PythonIDE() {
 
   return (
     <div className="colab-container">
-      <div className="colab-toolbar">
-        <div className="toolbar-left">
-          <span className="colab-logo">📓</span>
-          <span className="colab-title">Python Notebook</span>
-          <div className="toolbar-divider" />
-          <button className="toolbar-btn" onClick={() => addCell(null, 'code')}>
-            <span className="btn-icon">+</span> Code
-          </button>
-          <button className="toolbar-btn" onClick={() => addCell(null, 'text')}>
-            <span className="btn-icon">T</span> Text
-          </button>
-          <div className="toolbar-divider" />
-          <button className="toolbar-btn run-all" onClick={runAllCells} disabled={loading}>
-            ▶ Run All
-          </button>
+      {/* Top Menu Bar */}
+      <div className="colab-menubar">
+        <div className="menubar-left">
+          <span className="colab-logo-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <rect x="2" y="3" width="20" height="18" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M2 8h20" stroke="currentColor" strokeWidth="1.5"/>
+              <path d="M7 3v5" stroke="currentColor" strokeWidth="1.5"/>
+              <rect x="6" y="11" width="4" height="3" rx="0.5" fill="currentColor" opacity="0.3"/>
+              <rect x="12" y="11" width="6" height="3" rx="0.5" fill="currentColor" opacity="0.3"/>
+              <rect x="6" y="16" width="8" height="3" rx="0.5" fill="currentColor" opacity="0.3"/>
+            </svg>
+          </span>
+          <span className="colab-title-text">Python Notebook</span>
         </div>
-        <div className="toolbar-right">
-          <div className="runtime-badge">
-            <span className="runtime-dot" />
-            {loading ? 'Loading...' : runtimeInfo.python}
-          </div>
-          <button className={`toolbar-btn ai-btn ${showAiPanel ? 'active' : ''}`} onClick={() => setShowAiPanel(!showAiPanel)}>
-            ✨ AI
-          </button>
-          <button className={`toolbar-btn ${showToc ? 'active' : ''}`} onClick={() => setShowToc(!showToc)}>
-            ☰
+        <div className="menubar-center">
+          <button className="menu-item">File</button>
+          <button className="menu-item">Edit</button>
+          <button className="menu-item">View</button>
+          <button className="menu-item">Insert</button>
+          <button className="menu-item">Runtime</button>
+          <button className="menu-item">Tools</button>
+          <button className="menu-item">Help</button>
+        </div>
+        <div className="menubar-right">
+          <button className="menubar-btn ai-toggle" onClick={() => setShowAiPanel(!showAiPanel)}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            AI
           </button>
         </div>
       </div>
 
-      <div className="colab-body">
-        {showToc && (
-          <div className="toc-sidebar">
-            <div className="toc-header">Table of Contents</div>
-            <div className="toc-list">
-              {cells.map((cell, i) => (
-                <div
-                  key={cell.id}
-                  className={`toc-item ${selectedCellId === cell.id ? 'active' : ''}`}
-                  onClick={() => {
-                    setSelectedCellId(cell.id)
-                    document.getElementById(`cell-${cell.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                  }}
-                >
-                  <span className="toc-number">[{i + 1}]</span>
-                  <span className="toc-type">{cell.type === 'code' ? '🐍' : '📝'}</span>
-                  <span className="toc-preview">{cell.content.split('\n')[0]?.slice(0, 30) || 'Empty'}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+      {/* Main Toolbar */}
+      <div className="colab-toolbar">
+        <div className="toolbar-group">
+          <button className="toolbar-btn" onClick={() => addCell(null, 'code')} title="Add code cell">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="16 18 22 12 16 6"/>
+              <polyline points="8 6 2 12 8 18"/>
+            </svg>
+            <span>Code</span>
+          </button>
+          <button className="toolbar-btn" onClick={() => addCell(null, 'text')} title="Add text cell">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 7V4h16v3"/>
+              <path d="M9 20h6"/>
+              <path d="M12 4v16"/>
+            </svg>
+            <span>Text</span>
+          </button>
+        </div>
 
+        <div className="toolbar-divider-v" />
+
+        <div className="toolbar-group">
+          <button className="toolbar-btn play-btn" onClick={runAllCells} disabled={loading} title="Run all cells">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <polygon points="5 3 19 12 5 21 5 3"/>
+            </svg>
+            <span>Run all</span>
+          </button>
+        </div>
+
+        <div className="toolbar-spacer" />
+
+        <div className="toolbar-group">
+          <div className="runtime-indicator">
+            <div className={`runtime-dot ${loading ? 'loading' : 'connected'}`} />
+            <span>{loading ? 'Connecting...' : 'Connected'}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Notebook Area */}
+      <div className="colab-body">
         <div className="colab-cells">
           {cells.map((cell, index) => (
             <div
               key={cell.id}
               id={`cell-${cell.id}`}
-              className={`cell ${cell.type} ${selectedCellId === cell.id ? 'selected' : ''} ${runningCells.has(cell.id) ? 'running' : ''}`}
+              className={`cell-wrapper ${cell.type} ${selectedCellId === cell.id ? 'selected' : ''} ${runningCells.has(cell.id) ? 'running' : ''}`}
               onClick={() => setSelectedCellId(cell.id)}
+              onMouseEnter={() => setHoveredCellId(cell.id)}
+              onMouseLeave={() => setHoveredCellId(null)}
             >
-              <div className="cell-gutter">
-                <div className="cell-number">[{index + 1}]</div>
-                <div className="cell-actions-vertical">
-                  <button className="cell-action-btn" onClick={(e) => { e.stopPropagation(); moveCell(cell.id, -1) }} title="Move up" disabled={index === 0}>↑</button>
-                  <button className="cell-action-btn" onClick={(e) => { e.stopPropagation(); moveCell(cell.id, 1) }} title="Move down" disabled={index === cells.length - 1}>↓</button>
-                </div>
+              {/* Cell Actions - Left Side */}
+              <div className="cell-actions-left">
+                {cell.type === 'code' && (
+                  <button
+                    className={`cell-play-btn ${runningCells.has(cell.id) ? 'running' : ''}`}
+                    onClick={(e) => { e.stopPropagation(); runCell(cell.id) }}
+                    disabled={loading}
+                    title="Run cell"
+                  >
+                    {runningCells.has(cell.id) ? (
+                      <div className="play-spinner" />
+                    ) : (
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <polygon points="5 3 19 12 5 21 5 3"/>
+                      </svg>
+                    )}
+                  </button>
+                )}
               </div>
 
-              <div className="cell-main">
-                <div className="cell-toolbar">
-                  <div className="cell-toolbar-left">
-                    {cell.type === 'code' && (
-                      <button className="cell-run-btn" onClick={(e) => { e.stopPropagation(); runCell(cell.id) }} disabled={loading}>
-                        {runningCells.has(cell.id) ? <span className="spinner-small" /> : '▶'}
-                      </button>
-                    )}
-                    <span className="cell-type-label">{cell.type === 'code' ? 'Code' : 'Text'}</span>
-                  </div>
-                  <div className="cell-toolbar-right">
-                    <button className="cell-tool-btn" onClick={(e) => { e.stopPropagation(); toggleCellType(cell.id) }} title="Toggle type">
-                      {cell.type === 'code' ? '📝' : '🐍'}
-                    </button>
-                    <button className="cell-tool-btn" onClick={(e) => { e.stopPropagation(); duplicateCell(cell.id) }} title="Duplicate">⧉</button>
-                    <button className="cell-tool-btn delete" onClick={(e) => { e.stopPropagation(); deleteCell(cell.id) }} title="Delete" disabled={cells.length <= 1}>🗑</button>
-                  </div>
+              {/* Cell Content */}
+              <div className="cell-content">
+                {/* Cell Type Indicator */}
+                <div className="cell-type-indicator">
+                  {cell.type === 'code' ? (
+                    <span className="cell-badge code-badge">CODE</span>
+                  ) : (
+                    <span className="cell-badge text-badge">TEXT</span>
+                  )}
                 </div>
 
-                <div className="cell-body">
+                {/* Editor */}
+                <div className="cell-editor-area">
                   {cell.type === 'code' ? (
-                    <CellEditor cell={cell} onChange={(val) => setCells(prev => prev.map(c => c.id === cell.id ? { ...c, content: val } : c))} />
+                    <CellEditor
+                      cell={cell}
+                      onChange={(val) => setCells(prev => prev.map(c => c.id === cell.id ? { ...c, content: val } : c))}
+                    />
                   ) : (
                     <div className="text-cell-editor" onClick={() => {
                       const textarea = document.getElementById(`text-${cell.id}`)
@@ -377,34 +412,99 @@ export default function PythonIDE() {
                   )}
                 </div>
 
+                {/* Output */}
                 {outputs[cell.id] && (
                   <div className={`cell-output ${outputs[cell.id].type === 'error' ? 'error' : ''}`}>
                     <div className="output-header">
                       <span className="output-label">Out [{index + 1}]:</span>
-                      <button className="output-clear" onClick={(e) => { e.stopPropagation(); setOutputs(prev => { const n = { ...prev }; delete n[cell.id]; return n }) }}>×</button>
+                      <button
+                        className="output-clear-btn"
+                        onClick={(e) => { e.stopPropagation(); setOutputs(prev => { const n = { ...prev }; delete n[cell.id]; return n }) }}
+                        title="Clear output"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <line x1="18" y1="6" x2="6" y2="18"/>
+                          <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                      </button>
                     </div>
                     <pre className="output-content">{outputs[cell.id].content}</pre>
                   </div>
                 )}
               </div>
+
+              {/* Cell Actions - Right Side (on hover) */}
+              {(hoveredCellId === cell.id || selectedCellId === cell.id) && (
+                <div className="cell-actions-right">
+                  <button className="cell-action-icon" onClick={(e) => { e.stopPropagation(); moveCell(cell.id, -1) }} title="Move up" disabled={index === 0}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="18 15 12 9 6 15"/>
+                    </svg>
+                  </button>
+                  <button className="cell-action-icon" onClick={(e) => { e.stopPropagation(); moveCell(cell.id, 1) }} title="Move down" disabled={index === cells.length - 1}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                  </button>
+                  <button className="cell-action-icon" onClick={(e) => { e.stopPropagation(); toggleCellType(cell.id) }} title="Toggle type">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M4 7V4h16v3"/>
+                      <path d="M9 20h6"/>
+                      <path d="M12 4v16"/>
+                    </svg>
+                  </button>
+                  <button className="cell-action-icon" onClick={(e) => { e.stopPropagation(); duplicateCell(cell.id) }} title="Duplicate">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                  </button>
+                  <button className="cell-action-icon delete" onClick={(e) => { e.stopPropagation(); deleteCell(cell.id) }} title="Delete" disabled={cells.length <= 1}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                  </button>
+                </div>
+              )}
             </div>
           ))}
 
-          <div className="add-cell-area">
+          {/* Add Cell Buttons */}
+          <div className="add-cell-container">
             <button className="add-cell-btn" onClick={() => addCell(cells[cells.length - 1]?.id, 'code')}>
-              <span>+</span> Code
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Code
             </button>
             <button className="add-cell-btn" onClick={() => addCell(cells[cells.length - 1]?.id, 'text')}>
-              <span>+</span> Text
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Text
             </button>
           </div>
         </div>
 
+        {/* AI Sidebar */}
         {showAiPanel && (
           <div className="ai-sidebar">
             <div className="ai-sidebar-header">
-              <span>✨ AI Assistant</span>
-              <button onClick={() => setShowAiPanel(false)}>×</button>
+              <div className="ai-header-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+                AI Assistant
+              </div>
+              <button className="ai-close-btn" onClick={() => setShowAiPanel(false)}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+              </button>
             </div>
             <div className="ai-sidebar-content">
               <textarea
@@ -412,17 +512,35 @@ export default function PythonIDE() {
                 placeholder="Describe what you want to generate...&#10;&#10;Examples:&#10;• Sort a list using quicksort&#10;• Binary search implementation&#10;• Read CSV and calculate average&#10;• Create a Flask API endpoint"
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
-                rows={5}
+                rows={4}
               />
               <button className="ai-generate-btn" onClick={generateWithAI} disabled={aiGenerating || !aiPrompt.trim()}>
-                {aiGenerating ? 'Generating...' : '✨ Generate'}
+                {aiGenerating ? (
+                  <>
+                    <div className="ai-spinner" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                    </svg>
+                    Generate
+                  </>
+                )}
               </button>
 
               {aiResponse && (
                 <div className="ai-result">
                   <div className="ai-result-header">
                     <span>Generated Code</span>
-                    <button className="ai-insert-btn" onClick={insertAiCode}>+ Add Cell</button>
+                    <button className="ai-insert-btn" onClick={insertAiCode}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                      </svg>
+                      Add Cell
+                    </button>
                   </div>
                   <pre className="ai-code">{aiResponse}</pre>
                 </div>
@@ -431,7 +549,7 @@ export default function PythonIDE() {
               <div className="ai-examples">
                 <div className="examples-label">Quick Examples</div>
                 {['Merge Sort', 'Calculator Class', 'REST API with Flask', 'Palindrome Check', 'Linked List', 'Read JSON file'].map(ex => (
-                  <button key={ex} className="example-btn" onClick={() => setAiPrompt(ex)}>{ex}</button>
+                  <button key={ex} className="example-chip" onClick={() => setAiPrompt(ex)}>{ex}</button>
                 ))}
               </div>
             </div>
@@ -439,10 +557,26 @@ export default function PythonIDE() {
         )}
       </div>
 
+      {/* Status Bar */}
       <div className="colab-statusbar">
-        <span>Python {loading ? '...' : '3.12'} | Pyodide</span>
-        <span>{cells.length} cells | {cells.filter(c => c.type === 'code').length} code</span>
-        <span>Ctrl+Enter: Run | Shift+Ctrl+Enter: Run All</span>
+        <div className="status-left">
+          <span className="status-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <polyline points="16 18 22 12 16 6"/>
+              <polyline points="8 6 2 12 8 18"/>
+            </svg>
+            Python {loading ? '...' : '3.12'}
+          </span>
+          <span className="status-divider">|</span>
+          <span className="status-item">{cells.length} cells</span>
+          <span className="status-divider">|</span>
+          <span className="status-item">{cells.filter(c => c.type === 'code').length} code</span>
+        </div>
+        <div className="status-right">
+          <span className="status-item">Ctrl+Enter: Run</span>
+          <span className="status-divider">|</span>
+          <span className="status-item">Shift+Ctrl+Enter: Run All</span>
+        </div>
       </div>
     </div>
   )

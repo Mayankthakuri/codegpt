@@ -103,27 +103,40 @@ export function AuthProvider({ children }) {
   }
 
   const login = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) throw error
-    await loadUserProfile(data.user)
+    const res = await fetch('/api/auth/action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'login', email, password })
+    })
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error)
+
+    // Set Supabase session
+    await supabase.auth.setSession({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token
+    })
+
+    setUser(data.user)
     return data.user
   }
 
   const register = async (email, password, name) => {
-    const { data, error } = await supabase.auth.signUp({
-      email, password,
-      options: { data: { full_name: name } }
+    const res = await fetch('/api/auth/action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'register', email, password, name })
     })
-    if (error) throw error
-    if (data.user) {
-      // Upsert profile (will be created if doesn't exist)
-      const { error: insertErr } = await supabase.from('users').upsert({
-        id: data.user.id, email: data.user.email, name, provider: 'local',
-        stats: {}, achievements: [], progress: []
-      })
-      if (insertErr) console.error('Profile upsert error:', insertErr)
-      await loadUserProfile(data.user)
-    }
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error)
+
+    // Set Supabase session
+    await supabase.auth.setSession({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token
+    })
+
+    setUser(data.user)
     return data.user
   }
 

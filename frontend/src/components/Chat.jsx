@@ -1,14 +1,19 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import Message from './Message'
-import API_URL from '../config'
 
-export default function Chat({ conversation, onUpdateConversation }) {
+export default function Chat({ conversation, onUpdateConversation, onNewConversation }) {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef(null)
   const textareaRef = useRef(null)
+  const abortRef = useRef(null)
 
   const messages = conversation?.messages || []
+  const convIdRef = useRef(null)
+
+  useEffect(() => {
+    convIdRef.current = conversation?.id || null
+  }, [conversation?.id])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -25,29 +30,32 @@ export default function Chat({ conversation, onUpdateConversation }) {
     }
   }, [input])
 
-  const generateTitle = (firstMessage) => {
-    return firstMessage.slice(0, 40) + (firstMessage.length > 40 ? '...' : '')
+  const generateTitle = (text) => {
+    return text.slice(0, 40) + (text.length > 40 ? '...' : '')
   }
 
-  const sendMessage = async () => {
-    if (!input.trim() || isLoading) return
+  const sendMessage = useCallback(async () => {
+    const msg = input.trim()
+    if (!msg || isLoading) return
 
-    const userMessage = { role: 'user', content: input.trim() }
-    const newMessages = [...messages, userMessage]
+    const userMessage = { role: 'user', content: msg }
+    const isNew = !conversation
+    const id = convIdRef.current || Date.now().toString()
 
-    const convId = conversation?.id || Date.now().toString()
+    let currentMessages = [...messages, userMessage]
 
-    if (!conversation) {
-      onUpdateConversation(convId, {
-        id: convId,
-        title: generateTitle(input.trim()),
-        messages: newMessages,
+    if (isNew) {
+      convIdRef.current = id
+      onNewConversation(id, {
+        id,
+        title: generateTitle(msg),
+        messages: currentMessages,
         createdAt: new Date().toISOString()
       })
     } else {
-      onUpdateConversation(convId, {
-        messages: newMessages,
-        title: messages.length === 0 ? generateTitle(input.trim()) : conversation.title
+      onUpdateConversation(id, {
+        messages: currentMessages,
+        title: messages.length === 0 ? generateTitle(msg) : conversation.title
       })
     }
 
@@ -55,14 +63,14 @@ export default function Chat({ conversation, onUpdateConversation }) {
     setIsLoading(true)
 
     try {
-      const response = await fetch(`${API_URL}/api/chat`, {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages })
+        body: JSON.stringify({ messages: currentMessages })
       })
 
       if (!response.ok) {
-        throw new Error('Failed to get response')
+        throw new Error(`HTTP ${response.status}`)
       }
 
       const reader = response.body.getReader()
@@ -79,32 +87,40 @@ export default function Chat({ conversation, onUpdateConversation }) {
         buffer = lines.pop() || ''
 
         for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6).trim()
-            if (data === '[DONE]') break
-            try {
-              const parsed = JSON.parse(data)
-              if (parsed.content) {
-                assistantContent += parsed.content
-                onUpdateConversation(convId, {
-                  messages: [...newMessages, { role: 'assistant', content: assistantContent }]
-                })
-              }
-            } catch (e) {
-              // skip
+          if (!line.startsWith('data: ')) continue
+          const data = line.slice(6).trim()
+          if (data === '[DONE]') continue
+          try {
+            const parsed = JSON.parse(data)
+            if (parsed.error) {
+              assistantContent = `Error: ${parsed.error}`
+              break
             }
-          }
+            if (parsed.content) {
+              assistantContent += parsed.content
+              onUpdateConversation(convIdRef.current, {
+                messages: [...currentMessages, { role: 'assistant', content: assistantContent }]
+              })
+            }
+          } catch (e) { /* skip malformed chunks */ }
         }
       }
+
+      // If no content was received, show error
+      if (!assistantContent) {
+        onUpdateConversation(convIdRef.current, {
+          messages: [...currentMessages, { role: 'assistant', content: 'No response received. Please try again.' }]
+        })
+      }
     } catch (error) {
-      console.error('Error:', error)
-      onUpdateConversation(convId, {
-        messages: [...newMessages, { role: 'assistant', content: 'Error: Failed to get response. Please check your API key and try again.' }]
+      console.error('Chat error:', error)
+      onUpdateConversation(convIdRef.current, {
+        messages: [...currentMessages, { role: 'assistant', content: `Error: ${error.message}. Please try again.` }]
       })
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [input, isLoading, messages, conversation, onUpdateConversation, onNewConversation])
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -113,20 +129,29 @@ export default function Chat({ conversation, onUpdateConversation }) {
     }
   }
 
+  const isEmpty = messages.length === 0
+
   return (
     <div className="chat-container">
-      {messages.length === 0 ? (
+      {isEmpty ? (
         <div className="welcome-screen">
-          <div className="welcome-icon">💬</div>
-          <h1 className="welcome-title">How can I help you today?</h1>
-          <p className="welcome-subtitle">Ask me anything — I'm powered by DeepSeek AI</p>
+          <div className="welcome-icon">
+            <img src="/falcon.svg" alt="CodeGPT" />
+          </div>
+          <h1 className="welcome-title">CodeGPT</h1>
+          <p className="welcome-subtitle">Ask me anything — powered by DeepSeek AI</p>
+          <div className="welcome-suggestions">
+            {['Explain quantum computing', 'Write a Python function', 'Help me debug code', 'What is machine learning?'].map((s, i) => (
+              <button key={i} className="suggestion-btn" onClick={() => setInput(s)}>{s}</button>
+            ))}
+          </div>
         </div>
       ) : (
         <div className="messages-container">
           {messages.map((msg, idx) => (
             <Message key={idx} role={msg.role} content={msg.content} />
           ))}
-          {isLoading && (
+          {isLoading && messages[messages.length - 1]?.role === 'user' && (
             <div className="message assistant">
               <div className="message-avatar">AI</div>
               <div className="message-content">
@@ -158,10 +183,16 @@ export default function Chat({ conversation, onUpdateConversation }) {
             onClick={sendMessage}
             disabled={!input.trim() || isLoading}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-            </svg>
+            {isLoading ? (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+              </svg>
+            ) : (
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            )}
           </button>
         </div>
       </div>

@@ -483,20 +483,17 @@
 .welcome-icon {
   width: 60px;
   height: 60px;
-  border-radius: 50%;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
   margin-bottom: 20px;
+  overflow: hidden;
 }
 
-.dark .welcome-icon {
-  background-color: #19c37d;
-}
-
-.light .welcome-icon {
-  background-color: #19c37d;
+.welcome-icon img {
+  width: 60px;
+  height: 60px;
 }
 
 .welcome-title {
@@ -515,6 +512,41 @@
 
 .light .welcome-subtitle {
   color: #666;
+}
+
+.welcome-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 24px;
+  max-width: 500px;
+}
+
+.suggestion-btn {
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #ccc;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.dark .suggestion-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.light .suggestion-btn {
+  border-color: #e5e7eb;
+  background: #f3f4f6;
+  color: #555;
+}
+
+.light .suggestion-btn:hover {
+  background: #e5e7eb;
 }
 
 /* Loading */

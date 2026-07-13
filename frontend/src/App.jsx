@@ -247,6 +247,11 @@ function AppContent() {
           <Chat
             conversation={currentConversation}
             onUpdateConversation={updateConversation}
+            onNewConversation={(id, data) => {
+              setConversations(prev => [{ ...data }, ...prev])
+              setCurrentConversationId(id)
+              setShowLearning(false)
+            }}
             darkMode={darkMode}
           />
         )}

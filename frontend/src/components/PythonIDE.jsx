@@ -260,8 +260,20 @@ export default function PythonIDE() {
   const insertAiCode = () => {
     if (!aiResponse.trim()) return
     let code = aiResponse.replace(/```python\n?/g, '').replace(/```\n?/g, '').trim()
-    const newId = Date.now()
-    setCells(prev => [...prev, { id: newId, type: 'code', content: code }])
+    
+    const selectedId = selectedCellRef.current
+    const selectedCell = cellsRef.current.find(c => c.id === selectedId)
+    
+    if (selectedCell && selectedCell.type === 'code') {
+      setCells(prev => prev.map(c => c.id === selectedId ? { ...c, content: code } : c))
+      setTimeout(() => runCell(selectedId), 100)
+    } else {
+      const newId = Date.now()
+      setCells(prev => [...prev, { id: newId, type: 'code', content: code }])
+      setSelectedCellId(newId)
+      setTimeout(() => runCell(newId), 100)
+    }
+    
     setAiResponse('')
     setAiPrompt('')
   }
@@ -536,10 +548,9 @@ export default function PythonIDE() {
                     <span>Generated Code</span>
                     <button className="ai-insert-btn" onClick={insertAiCode}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <line x1="12" y1="5" x2="12" y2="19"/>
-                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polygon points="5 3 19 12 5 21 5 3"/>
                       </svg>
-                      Add Cell
+                      Run in Cell
                     </button>
                   </div>
                   <pre className="ai-code">{aiResponse}</pre>
